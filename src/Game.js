@@ -13,6 +13,7 @@ class Game extends Component {
       dice: Array.from({ length: NUM_DICE }),
       locked: Array(NUM_DICE).fill(false),
       rollsLeft: NUM_ROLLS,
+      isRolling: false,
       scores: {
         ones: undefined,
         twos: undefined,
@@ -32,6 +33,11 @@ class Game extends Component {
     this.roll = this.roll.bind(this);
     this.doScore = this.doScore.bind(this);
     this.toggleLocked = this.toggleLocked.bind(this);
+    this.animateRoll = this.animateRoll.bind(this);
+  }
+
+  componentDidMount() {
+    this.animateRoll();
   }
 
   roll(evt) {
@@ -41,12 +47,19 @@ class Game extends Component {
         st.locked[i] ? d : Math.ceil(Math.random() * 6)
       ),
       locked: st.rollsLeft > 1 ? st.locked : Array(NUM_DICE).fill(true),
-      rollsLeft: st.rollsLeft - 1
+      rollsLeft: st.rollsLeft - 1,
+      isRolling: false
     }));
   }
 
+  animateRoll() {
+    this.setState({ isRolling: true }, () => {
+      setTimeout(this.roll, 1000)
+    })
+  }
+
   toggleLocked(idx) {
-    if (this.state.rollsLeft > 0) {
+    if (this.state.rollsLeft > 0 && !this.state.isRolling) {
       // toggle whether idx is in locked or not
       this.setState(st => ({
         locked: [
@@ -66,10 +79,22 @@ class Game extends Component {
       rollsLeft: NUM_ROLLS,
       locked: Array(NUM_DICE).fill(false)
     }));
-    this.roll();
+    this.animateRoll();
+  }
+
+  displayRollInfo() {
+    const rollMessages = [
+      '0 Rolls left',
+      '1 Roll left',
+      '2 Rolls left',
+      'Starting Round'
+    ];
+
+    return rollMessages[this.state.rollsLeft]
   }
 
   render() {
+    const { dice, isRolling, locked, rollsLeft, scores } = this.state;
     return (
       <div className='Game'>
         <header className='Game-header'>
@@ -77,22 +102,24 @@ class Game extends Component {
 
           <section className='Game-dice-section'>
             <Dice
-              dice={this.state.dice}
-              locked={this.state.locked}
+              isRolling={isRolling}
+              disabled={rollsLeft === 0}
+              dice={dice}
+              locked={locked}
               handleClick={this.toggleLocked}
             />
             <div className='Game-button-wrapper'>
               <button
                 className='Game-reroll'
-                disabled={this.state.locked.every(x => x) || this.state.rollsLeft === 0}
-                onClick={this.roll}
+                disabled={locked.every(x => x) || rollsLeft === 0 || isRolling}
+                onClick={this.animateRoll}
               >
-                {this.state.rollsLeft} Rerolls Left
+                {this.displayRollInfo()}
               </button>
             </div>
           </section>
         </header>
-        <ScoreTable doScore={this.doScore} scores={this.state.scores} />
+        <ScoreTable doScore={this.doScore} scores={scores} />
       </div>
     );
   }
